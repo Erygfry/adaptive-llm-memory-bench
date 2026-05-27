@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Captures от Kotlin bench (сырые прогоны) — не коммитим, генерируются
+captures/*.json
+!captures/.gitkeep
+
+# Eval outputs (метрики, графики)
+results/
+*.png
+*.csv
+
+# Секреты — НИКОГДА в git
+.env
+*.key
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

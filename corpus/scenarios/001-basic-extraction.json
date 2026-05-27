@@ -1,0 +1,139 @@
+{
+  "id": "001-basic-extraction",
+  "description": "Структура: (1) чистое знакомство turns 1-12, факты о себе без вопросов; (2) force eviction → факты из turns 1-8 в БД (turns 9-12 в kept-окне, ещё не извлечены); (3) mixed-фаза turns 13-24 — probe-запросы ТОЛЬКО про уже-извлечённые факты + новая инфа (смена работы). Покрывает extraction, absolute date, retrieval probe, multi-hop, conflict resolution (Google→Yandex). Assistant-ответы намеренно НЕ повторяют факты — чтобы не зашумлять re-extraction.",
+  "category": "mixed",
+  "language": "ru",
+  "starting_date": "2026-05-25",
+  "ram_tier": "MID",
+
+  "eviction_policy": {
+    "mode": "force",
+    "force_after_turns": [12, 24]
+  },
+
+  "dialog": [
+    {"turn": 1,  "role": "user",      "content": "Привет, меня зовут Алексей."},
+    {"turn": 2,  "role": "assistant", "content": "Привет! Рад знакомству."},
+
+    {"turn": 3,  "role": "user",      "content": "Живу в Москве, работаю Python-разработчиком в Google."},
+    {"turn": 4,  "role": "assistant", "content": "Понял, спасибо что рассказал о себе."},
+
+    {"turn": 5,  "role": "user",      "content": "Пишу магистерский диплом про сжатие больших языковых моделей для мобильных устройств."},
+    {"turn": 6,  "role": "assistant", "content": "Серьёзная и актуальная тема."},
+
+    {"turn": 7,  "role": "user",      "content": "Главная сложность — модель Qwen 4B не помещается в 8 гигабайт оперативной памяти типичного телефона."},
+    {"turn": 8,  "role": "assistant", "content": "Да, это известное ограничение."},
+
+    {"turn": 9,  "role": "user",      "content": "Когда есть свободное время, люблю ходить в горные походы."},
+    {"turn": 10, "role": "assistant", "content": "Отличный способ переключиться."},
+
+    {"turn": 11, "role": "user",      "content": "Особенно нравятся маршруты на Кавказе."},
+    {"turn": 12, "role": "assistant", "content": "Красивые места."},
+
+    {"turn": 13, "role": "user", "date": "2026-05-26", "content": "Доброе утро! Напомни, в каком городе я живу?", "checks": {
+      "retrieval_top_k_includes": ["fact-location"]
+    }},
+    {"turn": 14, "role": "assistant", "content": "Доброе утро. Конечно, помню по нашему разговору."},
+
+    {"turn": 15, "role": "user", "content": "А какая основная сложность в моём дипломе?", "checks": {
+      "retrieval_top_k_includes_all": ["fact-task", "fact-problem"]
+    }},
+    {"turn": 16, "role": "assistant", "content": "Да, мы это подробно обсуждали."},
+
+    {"turn": 17, "role": "user", "date": "2026-06-15", "content": "Важная новость — я ушёл из Google и теперь работаю в Яндексе."},
+    {"turn": 18, "role": "assistant", "content": "Поздравляю с переходом!"},
+
+    {"turn": 19, "role": "user", "content": "В Яндексе занимаюсь рекомендательными системами."},
+    {"turn": 20, "role": "assistant", "content": "Интересное направление."},
+
+    {"turn": 21, "role": "user", "content": "На выходных планирую поехать в Питер на конференцию."},
+    {"turn": 22, "role": "assistant", "content": "Хорошая возможность."},
+
+    {"turn": 23, "role": "user", "content": "Да, жду с нетерпением."},
+    {"turn": 24, "role": "assistant", "content": "Уверен, всё пройдёт хорошо."}
+  ],
+
+  "db_checkpoints": [
+    {
+      "after_turn": 12,
+      "expected_active_facts": [
+        {
+          "id_alias": "fact-name",
+          "content_paraphrases": ["User's name is Alexey", "User is named Aleksey", "Имя пользователя — Алексей"],
+          "category": "personal_info",
+          "importance_range": [6, 9]
+        },
+        {
+          "id_alias": "fact-location",
+          "content_paraphrases": ["User lives in Moscow", "Пользователь живёт в Москве"],
+          "category": "personal_info",
+          "importance_range": [5, 8]
+        },
+        {
+          "id_alias": "fact-job-old",
+          "content_paraphrases": [
+            "User works as a Python developer at Google",
+            "Пользователь работает Python-разработчиком в Google"
+          ],
+          "category": "personal_info",
+          "importance_range": [6, 9]
+        },
+        {
+          "id_alias": "fact-task",
+          "content_paraphrases": [
+            "User is writing a master's thesis on compressing LLMs for mobile devices",
+            "Пользователь пишет диплом про сжатие LLM для мобильных устройств"
+          ],
+          "category": "goal",
+          "importance_range": [6, 9]
+        },
+        {
+          "id_alias": "fact-problem",
+          "content_paraphrases": [
+            "Qwen 4B model doesn't fit in 8GB RAM of a typical phone",
+            "Модель Qwen 4B не помещается в 8 ГБ RAM телефона"
+          ],
+          "category": "goal",
+          "importance_range": [5, 8]
+        }
+      ],
+      "expected_summary_includes": [
+        "user is named Aleksey",
+        "user is a Python developer at Google",
+        "user lives in Moscow",
+        "user is writing a thesis on compressing LLMs for mobile devices",
+        "main challenge is Qwen 4B not fitting in phone RAM"
+      ]
+    },
+
+    {
+      "after_turn": 24,
+      "expected_active_facts": [
+        {
+          "id_alias": "fact-job-new",
+          "content_paraphrases": [
+            "User left Google and now works at Yandex on recommender systems",
+            "Пользователь перешёл из Google в Яндекс, занимается рекомендательными системами"
+          ],
+          "category": "personal_info",
+          "importance_range": [6, 9]
+        },
+        {
+          "id_alias": "fact-hobby",
+          "content_paraphrases": [
+            "User enjoys mountain hiking, especially in the Caucasus",
+            "Пользователь любит горные походы, особенно на Кавказе"
+          ],
+          "category": "preference",
+          "importance_range": [3, 6]
+        }
+      ],
+      "expected_invalidated_aliases": ["fact-job-old"],
+      "expected_summary_includes": [
+        "user changed jobs from Google to Yandex",
+        "user now works on recommender systems at Yandex",
+        "user enjoys mountain hiking"
+      ]
+    }
+  ]
+}

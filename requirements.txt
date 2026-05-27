@@ -1,0 +1,9 @@
+# LLM judge — DeepSeek через OpenAI-совместимый API
+openai>=1.40.0
+
+# Анализ + отчёты
+pandas>=2.0.0
+matplotlib>=3.7.0
+
+# Прогресс-бары при batch-judging
+tqdm>=4.66.0

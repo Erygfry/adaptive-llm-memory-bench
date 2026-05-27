@@ -1,0 +1,106 @@
+{
+  "id": "002-qa-smoke",
+  "description": "QA-probe smoke: знакомство (факты о себе) → eviction → 4 QA-вопроса разных типов (recall, multi_fact, abstention, temporal). Модель генерирует ответы из памяти (факты в БД, не в KV). Проверяет end-to-end извлечение+применение.",
+  "category": "mixed",
+  "language": "ru",
+  "starting_date": "2026-05-25",
+  "ram_tier": "MID",
+
+  "eviction_policy": {
+    "mode": "force",
+    "force_after_turns": [12]
+  },
+
+  "dialog": [
+    {"turn": 1,  "role": "user",      "content": "Привет, меня зовут Алексей, живу в Казани."},
+    {"turn": 2,  "role": "assistant", "content": "Привет, Алексей! Рад знакомству."},
+
+    {"turn": 3,  "role": "user",      "content": "Работаю дата-сайентистом. Кстати, я вегетарианец."},
+    {"turn": 4,  "role": "assistant", "content": "Понял, буду иметь в виду."},
+
+    {"turn": 5,  "role": "user",      "content": "Ещё я очень люблю острую еду."},
+    {"turn": 6,  "role": "assistant", "content": "Острое — это здорово."},
+
+    {"turn": 7,  "role": "user",      "content": "Через неделю лечу в Бангкок на отдых."},
+    {"turn": 8,  "role": "assistant", "content": "Отличное направление для отпуска."},
+
+    {"turn": 9,  "role": "user",      "content": "Очень жду эту поездку."},
+    {"turn": 10, "role": "assistant", "content": "Понимаю, предвкушение — половина удовольствия."},
+
+    {"turn": 11, "role": "user",      "content": "Надеюсь, погода будет хорошая."},
+    {"turn": 12, "role": "assistant", "content": "Будем надеяться."},
+
+    {"turn": 13, "role": "user", "date": "2026-05-28", "content": "Напомни, в каком городе я живу?", "checks": {
+      "qa": {
+        "type": "recall",
+        "gold": "User lives in Kazan",
+        "must_mention": ["Казан", "Kazan"]
+      }
+    }},
+
+    {"turn": 14, "role": "user", "content": "Скоро лечу в Бангкок. Что мне там стоит попробовать из еды?", "checks": {
+      "qa": {
+        "type": "multi_fact",
+        "gold": "Should recommend vegetarian AND spicy Thai dishes, accounting for user being vegetarian who likes spicy food",
+        "must_mention": []
+      }
+    }},
+
+    {"turn": 15, "role": "user", "content": "А какая у меня зарплата на текущей работе?", "checks": {
+      "qa": {
+        "type": "abstention",
+        "gold": "Model should say it doesn't know / user never mentioned salary, and must NOT invent a number",
+        "must_not_mention": []
+      }
+    }},
+
+    {"turn": 16, "role": "user", "content": "Когда у меня вылет в Бангкок?", "checks": {
+      "qa": {
+        "type": "temporal",
+        "gold": "Flight to Bangkok is on 2026-06-01 (one week from 2026-05-25)",
+        "must_mention": ["1", "июн"]
+      }
+    }}
+  ],
+
+  "db_checkpoints": [
+    {
+      "after_turn": 12,
+      "expected_active_facts": [
+        {
+          "id_alias": "fact-location",
+          "content_paraphrases": ["User lives in Kazan", "Пользователь живёт в Казани"],
+          "category": "personal_info",
+          "importance_range": [5, 8]
+        },
+        {
+          "id_alias": "fact-vegetarian",
+          "content_paraphrases": ["User is a vegetarian", "Пользователь вегетарианец"],
+          "category": "preference",
+          "importance_range": [5, 9]
+        },
+        {
+          "id_alias": "fact-spicy",
+          "content_paraphrases": ["User loves spicy food", "Пользователь любит острую еду"],
+          "category": "preference",
+          "importance_range": [3, 7]
+        },
+        {
+          "id_alias": "fact-bangkok",
+          "content_paraphrases": [
+            "User flies to Bangkok for vacation on 2026-06-01",
+            "Пользователь летит в Бангкок на отдых 1 июня 2026"
+          ],
+          "category": "event",
+          "importance_range": [5, 9],
+          "event_date": "2026-06-01"
+        }
+      ],
+      "expected_summary_includes": [
+        "user lives in Kazan and works as a data scientist",
+        "user is vegetarian and likes spicy food",
+        "user is traveling to Bangkok around 1 June 2026"
+      ]
+    }
+  ]
+}
