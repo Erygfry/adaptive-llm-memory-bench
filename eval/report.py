@@ -9,17 +9,41 @@ import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
 
 
-QA_TYPE_ORDER = ["recall", "multi_fact", "abstention", "update", "temporal"]
+QA_TYPE_ORDER = ["recall", "multi_fact", "abstention", "update", "temporal", "gist", "synthesis"]
+MODE_ORDER = ["NO_MEMORY", "FACTS_ONLY", "FACTS_PLUS_SUMMARY", "FULL_DIALOGUE"]
 
 
 def write_report(qa_df: pd.DataFrame, snap_df: pd.DataFrame, out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     if not qa_df.empty:
         _plot_qa_by_type(qa_df, out_dir)
+        _plot_ablation(qa_df, out_dir)
     if not snap_df.empty:
         _plot_db_diagnostics(snap_df, out_dir)
     _write_summary_md(qa_df, snap_df, out_dir)
     print(f"[report] графики + summary.md → {out_dir}")
+
+
+def _plot_ablation(qa_df: pd.DataFrame, out_dir: Path) -> None:
+    """Grouped bar: pass rate по qa_type, серии = режимы. Главный график."""
+    pivot = qa_df.pivot_table(index="qa_type", columns="mode",
+                              values="passed", aggfunc="mean")
+    # упорядочить оси
+    rows = [t for t in QA_TYPE_ORDER if t in pivot.index]
+    cols = [m for m in MODE_ORDER if m in pivot.columns]
+    pivot = pivot.reindex(index=rows, columns=cols)
+
+    fig, ax = plt.subplots(figsize=(11, 6))
+    pivot.plot.bar(ax=ax)
+    ax.set_ylim(0, 1.05)
+    ax.set_ylabel("pass rate")
+    ax.set_xlabel("QA type")
+    ax.set_title("Ablation: QA accuracy by type × memory mode")
+    ax.legend(title="mode", fontsize=8)
+    plt.xticks(rotation=30, ha="right")
+    fig.tight_layout()
+    fig.savefig(out_dir / "ablation.png", dpi=150)
+    plt.close(fig)
 
 
 def _plot_qa_by_type(qa_df: pd.DataFrame, out_dir: Path) -> None:
@@ -63,17 +87,30 @@ def _plot_db_diagnostics(snap_df: pd.DataFrame, out_dir: Path) -> None:
 def _write_summary_md(qa_df: pd.DataFrame, snap_df: pd.DataFrame, out_dir: Path) -> None:
     lines: list[str] = ["# memory-bench results", ""]
 
-    lines.append("## QA accuracy (primary)")
+    lines.append("## QA pass rate: type × mode (ablation, primary)")
     lines.append("")
     if qa_df.empty:
         lines.append("_нет QA-данных_")
     else:
-        lines.append("| QA type | pass rate | n |")
-        lines.append("|---|---|---|")
-        grp = qa_df.groupby("qa_type")["passed"].agg(["mean", "count"])
-        for qa_type, row in grp.iterrows():
-            lines.append(f"| {qa_type} | {row['mean']:.0%} | {int(row['count'])} |")
-        lines.append(f"| **overall** | **{qa_df['passed'].mean():.0%}** | **{len(qa_df)}** |")
+        pivot = qa_df.pivot_table(index="qa_type", columns="mode",
+                                  values="passed", aggfunc="mean")
+        rows = [t for t in QA_TYPE_ORDER if t in pivot.index]
+        cols = [m for m in MODE_ORDER if m in pivot.columns]
+        pivot = pivot.reindex(index=rows, columns=cols)
+        lines.append("| qa_type | " + " | ".join(cols) + " |")
+        lines.append("|" + "---|" * (len(cols) + 1))
+        for qa_type in pivot.index:
+            cells = []
+            for m in cols:
+                v = pivot.loc[qa_type, m]
+                cells.append("—" if pd.isna(v) else f"{v:.0%}")
+            lines.append(f"| {qa_type} | " + " | ".join(cells) + " |")
+        # overall by mode
+        by_mode = qa_df.groupby("mode")["passed"].mean()
+        overall = [f"{by_mode.get(m, float('nan')):.0%}" if m in by_mode else "—" for m in cols]
+        lines.append(f"| **overall** | " + " | ".join(f"**{o}**" for o in overall) + " |")
+    lines.append("")
+    lines.append("![ablation](ablation.png)")
     lines.append("")
 
     lines.append("## DB diagnostics (secondary)")

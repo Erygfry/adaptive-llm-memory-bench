@@ -17,10 +17,10 @@ def load_scenarios(corpus_dir: Path) -> dict[str, dict]:
     return scenarios
 
 
-def load_captures(captures_dir: Path) -> dict[str, dict]:
-    """Все *-capture.json из captures_dir, ключ — scenarioId."""
-    captures: dict[str, dict] = {}
-    for path in sorted(captures_dir.glob("*-capture.json")):
-        data = json.loads(path.read_text(encoding="utf-8"))
-        captures[data["scenarioId"]] = data
-    return captures
+def load_captures(captures_dir: Path) -> list[dict]:
+    """Все *-capture.json из captures_dir. Список, а не dict — на один
+    сценарий несколько captures (по одному на RunMode, ablation)."""
+    return [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(captures_dir.glob("*-capture.json"))
+    ]

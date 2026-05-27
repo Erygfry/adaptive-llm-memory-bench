@@ -14,6 +14,10 @@ results/
 *.png
 *.csv
 
+# Reference datasets (LoCoMo / LongMemEval) — внешние, огромные (до 2.6 ГБ).
+# Адаптируем из них через eval/adapt_*.py, в репо только готовые сценарии.
+reference/
+
 # Секреты — НИКОГДА в git
 .env
 *.key

@@ -16,6 +16,7 @@ def _mention_hits(answer: str, needles: list[str]) -> list[str]:
 def eval_qa(scenario_id: str, capture: dict, judge: Judge) -> list[dict]:
     """Оценка QA-ответов (primary). Одна строка на QA-probe."""
     rows: list[dict] = []
+    mode = capture.get("mode", "?")
     for qa in capture.get("qaCaptures", []):
         # QaCheck сериализуется kotlinx с @SerialName в snake_case
         check = qa["check"]
@@ -42,6 +43,7 @@ def eval_qa(scenario_id: str, capture: dict, judge: Judge) -> list[dict]:
 
         rows.append({
             "scenario": scenario_id,
+            "mode": mode,
             "kind": "qa",
             "turn": qa["turn"],
             "qa_type": qa_type,
@@ -59,6 +61,7 @@ def eval_qa(scenario_id: str, capture: dict, judge: Judge) -> list[dict]:
 def eval_snapshots(scenario_id: str, scenario: dict, capture: dict, judge: Judge) -> list[dict]:
     """DB-диагностика (secondary): extraction recall + summary fidelity."""
     rows: list[dict] = []
+    mode = capture.get("mode", "?")
     checkpoints = {c["after_turn"]: c for c in scenario.get("db_checkpoints", [])}
     for snap in capture.get("snapshots", []):
         cp = checkpoints.get(snap["afterTurn"])
@@ -88,6 +91,7 @@ def eval_snapshots(scenario_id: str, scenario: dict, capture: dict, judge: Judge
 
         rows.append({
             "scenario": scenario_id,
+            "mode": mode,
             "kind": "snapshot",
             "after_turn": snap["afterTurn"],
             "extraction_recall": recall,

@@ -31,9 +31,12 @@ def main() -> int:
 
     scenarios = load_scenarios(args.corpus)
     captures = load_captures(args.captures)
-    print(f"[eval] scenarios: {len(scenarios)}, captures: {len(captures)}")
+    capture_sids = {c["scenarioId"] for c in captures}
+    modes_seen = sorted({c.get("mode", "?") for c in captures})
+    print(f"[eval] scenarios: {len(scenarios)}, captures: {len(captures)} "
+          f"({len(capture_sids)} уник. сценариев × режимы {modes_seen})")
 
-    missing = set(scenarios) - set(captures)
+    missing = set(scenarios) - capture_sids
     if missing:
         print(f"[eval] WARN: нет captures для {len(missing)} сценариев: {sorted(missing)}")
     if not captures:
@@ -55,12 +58,13 @@ def main() -> int:
 
     qa_rows: list[dict] = []
     snap_rows: list[dict] = []
-    for sid, capture in captures.items():
+    for capture in captures:
+        sid = capture["scenarioId"]
         scenario = scenarios.get(sid)
         if scenario is None:
             print(f"[eval] WARN: capture без сценария в корпусе: {sid}")
             continue
-        print(f"[eval] judging {sid} ...")
+        print(f"[eval] judging {sid} [{capture.get('mode','?')}] ...")
         qa_rows += eval_qa(sid, capture, judge)
         snap_rows += eval_snapshots(sid, scenario, capture, judge)
 
@@ -83,16 +87,19 @@ def _write_and_summarize(qa_rows: list[dict], snap_rows: list[dict], out: Path) 
     qa_df.to_csv(out / "qa.csv", index=False)
     snap_df.to_csv(out / "snapshots.csv", index=False)
 
-    print("\n=== QA accuracy by type ===")
+    print("\n=== QA pass rate: mode × type (ablation) ===")
     if not qa_df.empty:
-        by_type = qa_df.groupby("qa_type")["passed"].agg(["mean", "count"])
-        print(by_type.to_string())
-        print(f"\noverall QA pass rate: {qa_df['passed'].mean():.1%} (n={len(qa_df)})")
+        pivot = qa_df.pivot_table(index="qa_type", columns="mode",
+                                  values="passed", aggfunc="mean")
+        print((pivot * 100).round(0).to_string())
+        print("\n=== overall by mode ===")
+        by_mode = qa_df.groupby("mode")["passed"].agg(["mean", "count"])
+        print(by_mode.to_string())
 
-    print("\n=== DB diagnostics (mean) ===")
+    print("\n=== DB diagnostics by mode (mean) ===")
     if not snap_df.empty:
-        print(f"extraction recall: {snap_df['extraction_recall'].mean():.1%}")
-        print(f"summary fidelity:  {snap_df['summary_fidelity'].mean():.1%}")
+        dbm = snap_df.groupby("mode")[["extraction_recall", "summary_fidelity"]].mean()
+        print((dbm * 100).round(0).to_string())
 
     print(f"\n[eval] CSV → {out}/qa.csv, {out}/snapshots.csv")
 
