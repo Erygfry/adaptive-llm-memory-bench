@@ -1,11 +1,10 @@
 # memory-bench
 
-Бенчмарк системы долговременной памяти для on-device LLM ассистента
-(`adaptive-llm`). Корпус диалоговых сценариев + Python-харнес оценки.
+Бенчмарк системы долговременной памяти для on-device LLM ассистента. Корпус диалоговых сценариев + Python оценки.
 
 ## Архитектура
 
-Двухкомпонентная, потому что прогон системы и судейство — разные задачи:
+Двухкомпонентная, прогон системы и судейство — разные задачи:
 
 ```
 adaptive-llm-bench/  (Kotlin, отдельный репо)
@@ -17,7 +16,7 @@ adaptive-llm-bench/  (Kotlin, отдельный репо)
   → пишет captures/<scenario>-capture.json
 
 memory-bench/  (этот репо)
-  corpus/  — 50 сценариев (gold/expected) + SCHEMA.md
+  corpus/  — 60 сценариев (gold/expected) + SCHEMA.md
   eval/    — Python: читает scenario gold + capture.json → DeepSeek judge →
              метрики → CSV + графики
   captures/ — сюда Kotlin bench кладёт сырые прогоны (gitignored)
@@ -36,6 +35,8 @@ memory-bench/  (этот репо)
 - `abstention` — модель не выдумывает то, чего не было
 - `update` — отвечает актуальным значением, не stale
 - `temporal` — корректно понимает абсолютные даты
+- `gist` — модель кратко передаёт суть разговора («чем мы занимались?») — тестирует summary, а не точечные факты
+- `synthesis` — связный итог истории, требует склейки фактов и summary
 
 **Secondary — диагностика:**
 - retrieval top-K hit (всплыл ли нужный факт)
@@ -51,5 +52,4 @@ python eval/run_eval.py --corpus corpus/scenarios --captures captures --out resu
 
 ## Judge
 
-DeepSeek V4-Pro (open weights, дёшево, воспроизводимо) как primary judge,
-Claude Sonnet 4.5 как cross-check на подмножестве. См. `eval/judge.py`.
+DeepSeek V4-Pro (open weights, дёшево, воспроизводимо) как primary judge
