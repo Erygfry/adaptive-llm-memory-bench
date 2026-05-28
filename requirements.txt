@@ -7,3 +7,7 @@ matplotlib>=3.7.0
 
 # Прогресс-бары при batch-judging
 tqdm>=4.66.0
+
+# Сравнение эмбеддингов: BGE-M3 reference (eval/bge_vs_user2.py). Тяжёлый —
+# нужен только для retrieval-сравнения, для основного eval не обязателен.
+sentence-transformers>=3.0.0

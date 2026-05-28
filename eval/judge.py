@@ -119,6 +119,26 @@ class Judge:
         user = f"Summary: {summary}\n\nConcept: {concept}\n\nReply YES or NO."
         return self._yes_no(system, user)
 
+    def retrieval_contains(self, needed: str, retrieved: list[str]) -> bool:
+        """Присутствует ли нужная для ответа инфа в наборе извлечённых фактов.
+
+        Для сравнения retrieval-качества эмбеддинг-моделей: даём gold (что нужно
+        было достать) и топ-K фактов, что вытащила модель. YES — если набор
+        покрывает нужную инфу (хотя бы один факт, или вместе), даже иначе
+        сформулированную / на другом языке.
+        """
+        if not retrieved:
+            return False
+        joined = "\n".join(f"- {t}" for t in retrieved)
+        system = (
+            "You check whether the information needed to answer a question is "
+            "PRESENT in a set of retrieved memory facts. Reply YES if at least one "
+            "fact (or several together) contains the needed information, even if "
+            "worded differently or in another language. Reply NO if it is absent."
+        )
+        user = f"Needed information: {needed}\n\nRetrieved facts:\n{joined}\n\nReply YES or NO."
+        return self._yes_no(system, user)
+
 
 class MockJudge:
     """⚠️ Заглушка для тестирования пайплайна БЕЗ API/денег. Лексический
@@ -161,3 +181,8 @@ class MockJudge:
 
     def summary_contains(self, summary: str, concept: str) -> bool:
         return self._overlap(summary, concept) >= self.summary_threshold
+
+    def retrieval_contains(self, needed: str, retrieved: list[str]) -> bool:
+        if not retrieved:
+            return False
+        return self._overlap(needed, " ".join(retrieved)) >= self.fact_threshold
