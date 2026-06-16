@@ -8,9 +8,19 @@ venv/
 # Captures от Kotlin bench (сырые прогоны) — не коммитим, генерируются
 captures/*.json
 !captures/.gitkeep
+captures-lme/*.json
+captures-lme-fullctx/*.json
 
 # Eval outputs (метрики, графики)
 results/
+*.png
+*.csv
+
+results-lme/
+*.png
+*.csv
+
+results-lme-fullctx/
 *.png
 *.csv
 
@@ -27,3 +37,5 @@ reference/
 Thumbs.db
 .idea/
 .vscode/
+
+

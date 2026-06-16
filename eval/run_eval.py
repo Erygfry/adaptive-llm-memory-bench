@@ -10,6 +10,14 @@ import argparse
 import sys
 from pathlib import Path
 
+# Windows-консоль часто в cp1251 — принудительно UTF-8, иначе print кириллицы
+# или символа '×' роняет скрипт с UnicodeEncodeError ещё до начала eval'а.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
 # Локальные модули (eval/ в sys.path при запуске из корня)
 sys.path.insert(0, str(Path(__file__).parent))
 
